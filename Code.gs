@@ -90,7 +90,7 @@ function handle_(e) {
 
   // 只驗證、不送出（前端第一步用）
   if (body.action === 'verify') {
-    return { ok: true, verified: true, nickname: sponsor.nickname };
+    return { ok: true, verified: true, nickname: sponsor.nickname, existing: findOrder_(sponsor.nickname) };
   }
 
   // 查詢門市（只有通過驗證的贊助者能用）
@@ -219,6 +219,23 @@ function parseStores_(xml) {
 function tag_(s, t) {
   const m = s.match(new RegExp('<' + t + '>([^<]*)</' + t + '>'));
   return m ? m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim() : '';
+}
+
+/* ---------------- 讀取本人已填資料 ---------------- */
+
+function findOrder_(nickname) {
+  const sh = sheet_(CONFIG.SHEET_ORDERS);
+  const last = sh.getLastRow();
+  if (last < 2) return null;
+  const rows = sh.getRange(2, 1, last - 1, 5).getValues();
+  const key = normNick_(nickname);
+  for (let i = 0; i < rows.length; i++) {
+    if (normNick_(rows[i][0]) === key) {
+      const id = String(rows[i][1]).replace(/^'/, '');
+      return { storeId: /^\d+$/.test(id) ? ('000000' + id).slice(-6) : id, storeName: String(rows[i][2]), storeAddr: String(rows[i][3]), recipient: String(rows[i][4]) };
+    }
+  }
+  return null;
 }
 
 /* ---------------- 寫入 ---------------- */

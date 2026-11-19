@@ -40,6 +40,30 @@
       .finally(function () { clearTimeout(t); });
   }
 
+  // 顯示已存的資料，並把它預先放進第 2 步的表單，方便直接修改
+  function showSaved(s) {
+    var dl = $('summary');
+    dl.replaceChildren();
+    [['門市', (s.storeName || '') + ' 門市'], ['店號', s.storeId], ['地址', s.storeAddr], ['收件人', s.recipient]].forEach(function (p) {
+      var dt = document.createElement('dt'); dt.textContent = p[0];
+      var dd = document.createElement('dd'); dd.textContent = p[1] || '';
+      dl.append(dt, dd);
+    });
+    if (s.storeId) {
+      var st = { id: String(s.storeId), name: String(s.storeName || ''), addr: String(s.storeAddr || '') };
+      if (!stores.some(function (x) { return x.id === st.id; })) stores = [st].concat(stores);
+      var sel = $('store');
+      if (!Array.prototype.some.call(sel.options, function (o) { return o.value === st.id; })) {
+        sel.insertBefore(opt(st.id, st.name + '｜' + st.addr), sel.options[1] || null);
+      }
+      sel.disabled = false;
+      sel.value = st.id;
+      pick(st);
+    }
+    if (s.recipient) $('recipient').value = s.recipient;
+    show(done);
+  }
+
   /* ---------- 第 1 步：驗證 ---------- */
 
   verifyForm.addEventListener('submit', function (e) {
@@ -54,6 +78,12 @@
         if (!res || !res.ok) return say((res && res.msg) || '驗證失敗。');
         creds = { nickname: nickname, proof: proof };
         $('welcome').textContent = '你好，' + res.nickname + '！請選擇取貨門市。';
+        if (res.existing && res.existing.storeId) {
+          // 之前填過：直接顯示原本的資料，可按「修改資料」修改
+          showSaved(res.existing);
+          say('你之前已經填過囉，以下是目前的資料。', true);
+          return;
+        }
         show(orderForm);
         $('city').focus();
       })
@@ -175,16 +205,8 @@
     })
       .then(function (res) {
         if (!res || !res.ok) return say((res && res.msg) || '送出失敗。');
-        var s = res.saved || {};
-        var dl = $('summary');
-        dl.replaceChildren();
-        [['門市', (s.storeName || '') + ' 門市'], ['店號', s.storeId], ['地址', s.storeAddr], ['收件人', s.recipient]].forEach(function (p) {
-          var dt = document.createElement('dt'); dt.textContent = p[0];
-          var dd = document.createElement('dd'); dd.textContent = p[1] || '';
-          dl.append(dt, dd);
-        });
+        showSaved(res.saved || {});
         say(res.updated ? '已更新為最新資料。' : '送出成功！', true);
-        show(done);
       })
       .finally(function () { busy(btn, false, '送出'); });
   });
