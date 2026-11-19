@@ -184,16 +184,17 @@
           dl.append(dt, dd);
         });
         say(res.updated ? '已更新為最新資料。' : '送出成功！', true);
-        creds = null;
-        $('proof').value = '';
         show(done);
       })
       .finally(function () { busy(btn, false, '送出'); });
   });
 
   $('back-btn').addEventListener('click', function () { creds = null; say(''); show(verifyForm); });
+  // 修改資料：回到門市與收件人頁面，保留剛才填的內容（驗證資料只存在這個分頁的記憶體裡）
   $('again-btn').addEventListener('click', function () {
-    orderForm.reset(); resetStores('請先選擇地區'); $('town').disabled = true; $('filter').disabled = true;
-    say(''); show(verifyForm); $('nickname').focus();
+    say('');
+    if (!creds) { show(verifyForm); return $('nickname').focus(); }
+    show(orderForm);
+    $('store').focus();
   });
 })();
