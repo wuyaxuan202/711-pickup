@@ -1,6 +1,13 @@
 (function () {
   'use strict';
 
+  // 防止被嵌入其他網站（點擊劫持）：被放進 iframe 就不顯示，並嘗試跳回本站
+  if (window.top !== window.self) {
+    document.documentElement.style.display = 'none';
+    try { window.top.location = window.location.href; } catch (e) { /* 被擋就維持空白 */ }
+    return;
+  }
+
   var cfg = window.APP_CONFIG || {};
   var $ = function (id) { return document.getElementById(id); };
   var verifyForm = $('verify-form');
