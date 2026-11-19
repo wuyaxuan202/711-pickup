@@ -1,0 +1,7 @@
+# 永遠不要把名單或匯出的個資放進 repo
+*.csv
+*.xlsx
+*.xls
+名單*
+sponsors*
+.DS_Store
