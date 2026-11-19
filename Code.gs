@@ -165,14 +165,14 @@ function upsertOrder_(nickname, d) {
         const r = i + 2;
         const count = Number(sh.getRange(r, 7).getValue() || 0);
         sh.getRange(r, 2, 1, 6).setValues([[
-          cell_(d.storeId), cell_(d.storeName), cell_(d.recipient),
+          "'" + d.storeId, cell_(d.storeName), cell_(d.recipient),
           sh.getRange(r, 5).getValue(), now, count + 1,
         ]]);
         return true;
       }
     }
   }
-  sh.appendRow([cell_(nickname), cell_(d.storeId), cell_(d.storeName), cell_(d.recipient), now, now, 0]);
+  sh.appendRow([cell_(nickname), "'" + d.storeId, cell_(d.storeName), cell_(d.recipient), now, now, 0]);
   return false;
 }
 

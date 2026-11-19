@@ -17,9 +17,9 @@
     <form id="verify-form" novalidate>
       <h2><span class="step">1</span>身份驗證</h2>
       <label for="nickname">群組暱稱</label>
-      <input id="nickname" name="nickname" type="text" maxlength="40" autocomplete="off" required>
+      <input id="nickname" name="group-nick" type="text" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore required>
       <label for="proof">驗證資料</label>
-      <input id="proof" name="proof" type="password" maxlength="40" autocomplete="off" required>
+      <input id="proof" name="proof-code" type="text" inputmode="text" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore required>
       <p class="hint" id="proof-hint">請填寫主辦公告的驗證資料（例如贊助時的匯款帳號末五碼）。</p>
       <!-- 機器人陷阱：真人看不到 -->
       <div class="trap" aria-hidden="true">
