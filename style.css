@@ -1,0 +1,54 @@
+:root {
+  --bg: #f4f1ec;
+  --card: #ffffff;
+  --ink: #2b2b2b;
+  --muted: #6d6a65;
+  --line: #ddd7cf;
+  --accent: #e2662b;
+  --accent-ink: #ffffff;
+  --ok: #2f7d4f;
+  --err: #b3261e;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
+  font-family: -apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  display: flex; justify-content: center; align-items: flex-start; padding: 32px 16px;
+  line-height: 1.6;
+}
+.card {
+  width: 100%; max-width: 440px; background: var(--card); border-radius: 16px;
+  padding: 28px 24px; box-shadow: 0 2px 12px rgba(0,0,0,.06);
+}
+h1 { font-size: 1.4rem; margin: 0 0 6px; }
+h2 { font-size: 1.05rem; margin: 24px 0 8px; display: flex; align-items: center; gap: 8px; }
+.step {
+  display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink); font-size: .85rem;
+}
+.lead, .hint, footer { color: var(--muted); font-size: .9rem; }
+.hint { margin: 4px 0 0; }
+.welcome { margin: 0 0 4px; }
+label { display: block; font-weight: 600; margin-top: 14px; font-size: .95rem; }
+input {
+  width: 100%; margin-top: 6px; padding: 11px 12px; font-size: 1rem;
+  border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink);
+}
+input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+button {
+  margin-top: 20px; width: 100%; padding: 12px; font-size: 1rem; font-weight: 600;
+  border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-ink); cursor: pointer;
+}
+button:disabled { opacity: .6; cursor: wait; }
+button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.actions { display: flex; gap: 10px; }
+.actions button { flex: 1; }
+.msg { min-height: 1.4em; margin: 16px 0 0; color: var(--err); font-size: .95rem; }
+.msg.ok { color: var(--ok); }
+dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 8px 0; }
+dt { color: var(--muted); }
+dd { margin: 0; font-weight: 600; }
+a { color: var(--accent); }
+footer { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 12px; }
+.trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+[hidden] { display: none !important; }

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; form-action 'none'; base-uri 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex, nofollow">
+  <title>應援回饋｜7-11 收件資料填寫</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="card">
+    <h1>7-11 收件資料填寫</h1>
+    <p class="lead">此表單僅限集資應援的贊助者填寫。請先驗證身份，再填寫要取貨的 7-11 門市。</p>
+
+    <form id="verify-form" novalidate>
+      <h2><span class="step">1</span>身份驗證</h2>
+      <label for="nickname">群組暱稱</label>
+      <input id="nickname" name="nickname" type="text" maxlength="40" autocomplete="off" required>
+      <label for="proof">驗證資料</label>
+      <input id="proof" name="proof" type="password" maxlength="40" autocomplete="off" required>
+      <p class="hint" id="proof-hint">請填寫主辦公告的驗證資料（例如贊助時的匯款帳號末五碼）。</p>
+      <!-- 機器人陷阱：真人看不到 -->
+      <div class="trap" aria-hidden="true">
+        <label for="website">請勿填寫</label>
+        <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+      </div>
+      <button type="submit" id="verify-btn">驗證</button>
+    </form>
+
+    <form id="order-form" novalidate hidden>
+      <h2><span class="step">2</span>收件資料</h2>
+      <p class="welcome" id="welcome"></p>
+      <label for="storeId">門市店號（6 位數字）</label>
+      <input id="storeId" name="storeId" type="text" inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="off" required>
+      <label for="storeName">門市名稱</label>
+      <input id="storeName" name="storeName" type="text" maxlength="20" placeholder="例如：鑫忠孝" autocomplete="off" required>
+      <p class="hint">不知道店號？到 <a href="https://emap.pcsc.com.tw/" target="_blank" rel="noopener noreferrer">7-ELEVEN 電子地圖</a> 搜尋門市即可看到。</p>
+      <label for="recipient">收件人姓名</label>
+      <input id="recipient" name="recipient" type="text" maxlength="20" autocomplete="name" required>
+      <p class="hint">需與取貨時出示的證件姓名相同。</p>
+      <div class="actions">
+        <button type="button" id="back-btn" class="secondary">返回</button>
+        <button type="submit" id="submit-btn">送出</button>
+      </div>
+    </form>
+
+    <div id="done" hidden>
+      <h2>已收到你的資料</h2>
+      <dl id="summary"></dl>
+      <p class="hint">如需修改，重新驗證後再送出一次即可，以最後一次為準。</p>
+      <button type="button" id="again-btn" class="secondary">重新填寫</button>
+    </div>
+
+    <p id="msg" class="msg" role="alert" aria-live="polite"></p>
+
+    <footer>你填寫的資料只會傳送給主辦，用於寄送回饋品，不會公開。</footer>
+  </main>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
