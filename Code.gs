@@ -22,7 +22,8 @@ const CONFIG = {
   MAX_BODY_BYTES: 2000,
 };
 
-const ORDER_HEADERS = ['群組暱稱', '店號', '門市名稱', '收件人姓名', '首次送出', '最後更新', '修改次數'];
+const ORDER_HEADERS = ['群組暱稱', '店號', '門市名稱', '門市地址', '收件人姓名', '首次送出', '最後更新', '修改次數'];
+const EMAP_URL = 'https://emap.pcsc.com.tw/EMapSDK.aspx';
 const GENERIC_FAIL = '暱稱或驗證資料不正確，請確認後再試。';
 
 /* ---------------- 進入點 ---------------- */
@@ -92,9 +93,24 @@ function handle_(e) {
     return { ok: true, verified: true, nickname: sponsor.nickname };
   }
 
-  // 2) 驗證收件資料
+  // 查詢門市（只有通過驗證的贊助者能用）
+  if (body.action === 'stores') {
+    return searchStores_(body);
+  }
+
+  // 2) 驗證收件資料，並向 7-11 官方確認門市存在
   const v = validateOrder_(body);
   if (!v.ok) return v;
+  let store;
+  try {
+    store = lookupStoreById_(v.data.storeId);
+  } catch (err) {
+    console.error(err);
+    return { ok: false, msg: '暫時無法連線到 7-11 門市資料，請稍後再試。' };
+  }
+  if (!store) return { ok: false, msg: '查無此店號，請重新選擇門市。' };
+  v.data.storeName = store.name;
+  v.data.storeAddr = store.addr;
 
   // 3) 寫入（加鎖）
   const lock = LockService.getScriptLock();
@@ -105,7 +121,7 @@ function handle_(e) {
     return {
       ok: true,
       updated: updated,
-      saved: { storeId: v.data.storeId, storeName: v.data.storeName, recipient: v.data.recipient },
+      saved: { storeId: v.data.storeId, storeName: v.data.storeName, storeAddr: v.data.storeAddr, recipient: v.data.recipient },
     };
   } finally {
     lock.releaseLock();
@@ -133,20 +149,76 @@ function findSponsor_(nickKey, proofRaw) {
 
 function validateOrder_(body) {
   const storeId = toHalfWidth_(str_(body.storeId)).replace(/\s/g, '');
-  let storeName = str_(body.storeName).replace(/\s+/g, '');
   const recipient = str_(body.recipient).replace(/\s+/g, ' ');
-
   if (!/^\d{6}$/.test(storeId)) {
-    return { ok: false, msg: '店號應為 6 位數字（可在 7-ELEVEN 電子地圖查詢）。' };
-  }
-  storeName = storeName.replace(/門市$/, '');
-  if (storeName.length < 1 || storeName.length > 20 || !/^[\p{Script=Han}A-Za-z0-9]+$/u.test(storeName)) {
-    return { ok: false, msg: '門市名稱格式不正確，請填寫中文店名，例如「鑫忠孝」。' };
+    return { ok: false, msg: '請先選擇取貨門市。' };
   }
   if (recipient.length < 2 || recipient.length > 20 || !/^[\p{L}][\p{L}\s.·．‧]*$/u.test(recipient)) {
     return { ok: false, msg: '收件人姓名請填寫真實姓名（需與取件證件相符），不可含數字或符號。' };
   }
-  return { ok: true, data: { storeId: storeId, storeName: storeName, recipient: recipient } };
+  return { ok: true, data: { storeId: storeId, recipient: recipient } };
+}
+
+/* ---------------- 7-11 門市查詢 ---------------- */
+
+function searchStores_(body) {
+  const city = str_(body.city), town = str_(body.town), q = toHalfWidth_(str_(body.q)).replace(/\s/g, '');
+  const han = /^[\p{Script=Han}]{2,6}$/u;
+  let params;
+  if (q) {
+    if (!/^[\p{Script=Han}A-Za-z0-9]{1,20}$/u.test(q)) return { ok: false, msg: '請輸入店名或 6 位數店號。' };
+    params = /^\d{6}$/.test(q) ? { ID: q } : { StoreName: q };
+  } else {
+    if (!han.test(city) || !han.test(town)) return { ok: false, msg: '請選擇縣市與鄉鎮區。' };
+    params = { city: city, town: town };
+  }
+  try {
+    const list = emapSearch_(params);
+    return { ok: true, stores: list.slice(0, 400) };
+  } catch (err) {
+    console.error(err);
+    return { ok: false, msg: '暫時無法連線到 7-11 門市資料，請稍後再試。' };
+  }
+}
+
+function lookupStoreById_(id) {
+  const list = emapSearch_({ ID: id });
+  for (let i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+  return null;
+}
+
+function emapSearch_(params) {
+  const cache = CacheService.getScriptCache();
+  const key = 'e:' + sha256_(JSON.stringify(params));
+  const hit = cache.get(key);
+  if (hit) return JSON.parse(hit);
+
+  const form = {
+    commandid: 'SearchStore', city: '', town: '', roadname: '', ID: '', StoreName: '',
+    SpecialStore_Kind: '', leftMenuChecked: '', address: '',
+  };
+  Object.keys(params).forEach(function (k) { form[k] = params[k]; });
+  const res = UrlFetchApp.fetch(EMAP_URL, { method: 'post', payload: form, muteHttpExceptions: true, followRedirects: false });
+  if (res.getResponseCode() !== 200) throw new Error('emap HTTP ' + res.getResponseCode());
+  const list = parseStores_(res.getContentText('UTF-8'));
+  try { cache.put(key, JSON.stringify(list), 6 * 60 * 60); } catch (e) { /* 太大就不快取 */ }
+  return list;
+}
+
+function parseStores_(xml) {
+  const out = [];
+  const re = /<GeoPosition>([\s\S]*?)<\/GeoPosition>/g;
+  let m;
+  while ((m = re.exec(xml)) !== null) {
+    const id = tag_(m[1], 'POIID'), name = tag_(m[1], 'POIName'), addr = tag_(m[1], 'Address');
+    if (/^\d{6}$/.test(id) && name) out.push({ id: id, name: name, addr: addr });
+  }
+  return out;
+}
+
+function tag_(s, t) {
+  const m = s.match(new RegExp('<' + t + '>([^<]*)</' + t + '>'));
+  return m ? m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim() : '';
 }
 
 /* ---------------- 寫入 ---------------- */
@@ -163,16 +235,16 @@ function upsertOrder_(nickname, d) {
     for (let i = 0; i < nicks.length; i++) {
       if (normNick_(nicks[i][0]) === key) {
         const r = i + 2;
-        const count = Number(sh.getRange(r, 7).getValue() || 0);
-        sh.getRange(r, 2, 1, 6).setValues([[
-          "'" + d.storeId, cell_(d.storeName), cell_(d.recipient),
-          sh.getRange(r, 5).getValue(), now, count + 1,
+        const count = Number(sh.getRange(r, 8).getValue() || 0);
+        sh.getRange(r, 2, 1, 7).setValues([[
+          "'" + d.storeId, cell_(d.storeName), cell_(d.storeAddr), cell_(d.recipient),
+          sh.getRange(r, 6).getValue(), now, count + 1,
         ]]);
         return true;
       }
     }
   }
-  sh.appendRow([cell_(nickname), "'" + d.storeId, cell_(d.storeName), cell_(d.recipient), now, now, 0]);
+  sh.appendRow([cell_(nickname), "'" + d.storeId, cell_(d.storeName), cell_(d.storeAddr), cell_(d.recipient), now, now, 0]);
   return false;
 }
 
@@ -244,7 +316,9 @@ function setup() {
   const sp = sheet_(CONFIG.SHEET_SPONSORS);
   if (sp.getLastRow() === 0) sp.appendRow(['群組暱稱', '驗證資料']);
   const od = sheet_(CONFIG.SHEET_ORDERS);
-  if (od.getLastRow() === 0) od.appendRow(ORDER_HEADERS);
+  if (od.getLastRow() <= 1) od.getRange(1, 1, 1, ORDER_HEADERS.length).setValues([ORDER_HEADERS]);
+  // 測試能否連到 7-11（第一次執行會要求「連線到外部服務」的授權）
+  console.log('7-11 測試查詢：', JSON.stringify(lookupStoreById_('265465')));
   // 店號、驗證資料欄設成純文字，避免開頭的 0 被吃掉
   sp.getRange('B:B').setNumberFormat('@');
   od.getRange('B:B').setNumberFormat('@');

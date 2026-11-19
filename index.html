@@ -32,11 +32,43 @@
     <form id="order-form" novalidate hidden>
       <h2><span class="step">2</span>收件資料</h2>
       <p class="welcome" id="welcome"></p>
-      <label for="storeId">門市店號（6 位數字）</label>
-      <input id="storeId" name="storeId" type="text" inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="off" required>
-      <label for="storeName">門市名稱</label>
-      <input id="storeName" name="storeName" type="text" maxlength="20" placeholder="例如：鑫忠孝" autocomplete="off" required>
-      <p class="hint">不知道店號？到 <a href="https://emap.pcsc.com.tw/" target="_blank" rel="noopener noreferrer">7-ELEVEN 電子地圖</a> 搜尋門市即可看到。</p>
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab active" id="tab-area" role="tab" aria-selected="true">用地區找</button>
+        <button type="button" class="tab" id="tab-name" role="tab" aria-selected="false">用店名／店號找</button>
+      </div>
+
+      <div id="pane-area">
+        <div class="row">
+          <div>
+            <label for="city">縣市</label>
+            <select id="city"><option value="">請選擇</option></select>
+          </div>
+          <div>
+            <label for="town">鄉鎮市區</label>
+            <select id="town" disabled><option value="">請先選縣市</option></select>
+          </div>
+        </div>
+        <label for="filter">地址關鍵字（選填）</label>
+        <input id="filter" type="text" maxlength="20" placeholder="例如：忠孝東路、復興南路" autocomplete="off" disabled>
+      </div>
+
+      <div id="pane-name" hidden>
+        <label for="q">店名或 6 位數店號</label>
+        <div class="search">
+          <input id="q" type="text" maxlength="20" placeholder="例如：鑫忠孝 或 265465" autocomplete="off">
+          <button type="button" id="q-btn" class="secondary">搜尋</button>
+        </div>
+      </div>
+
+      <label for="store">取貨門市</label>
+      <select id="store" disabled><option value="">請先選擇地區或搜尋</option></select>
+      <p class="hint" id="store-count"></p>
+
+      <div id="picked" class="picked" hidden>
+        <div class="picked-name" id="picked-name"></div>
+        <div class="picked-addr" id="picked-addr"></div>
+      </div>
+
       <label for="recipient">收件人姓名</label>
       <input id="recipient" name="recipient" type="text" maxlength="20" autocomplete="name" required>
       <p class="hint">需與取貨時出示的證件姓名相同。</p>
@@ -58,6 +90,7 @@
     <footer>你填寫的資料只會傳送給主辦，用於寄送回饋品，不會公開。</footer>
   </main>
   <script src="config.js"></script>
+  <script src="towns.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
